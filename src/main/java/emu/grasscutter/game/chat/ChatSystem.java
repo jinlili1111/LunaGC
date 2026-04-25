@@ -5,6 +5,7 @@ import static emu.grasscutter.config.Configuration.GAME_INFO;
 import emu.grasscutter.GameConstants;
 import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.game.player.Player;
+import emu.grasscutter.net.proto.ChatInfoOuterClass.ChatInfo;
 import emu.grasscutter.server.event.player.PlayerChatEvent;
 import emu.grasscutter.server.game.GameServer;
 import emu.grasscutter.server.packet.send.*;
@@ -19,7 +20,7 @@ public class ChatSystem implements ChatSystemHandler {
 
     // We store the chat history for ongoing sessions in the form
     //    user id -> chat partner id -> [messages]
-    private final Map<Integer, Map<Integer, List<ChatMessage>>> history = new HashMap<>();
+    private final Map<Integer, Map<Integer, List<ChatInfo>>> history = new HashMap<>();
 
     private final GameServer server;
 
@@ -41,7 +42,7 @@ public class ChatSystem implements ChatSystemHandler {
     /********************
      * Chat history handling
      ********************/
-    private void putInHistory(int uid, int partnerId, ChatMessage info) {
+    private void putInHistory(int uid, int partnerId, ChatInfo info) {
         this.history
                 .computeIfAbsent(uid, x -> new HashMap<>())
                 .computeIfAbsent(partnerId, x -> new ArrayList<>())
@@ -174,14 +175,6 @@ public class ChatSystem implements ChatSystemHandler {
 
         // Check if command
         var isCommand = tryInvokeCommand(player, target, message);
-
-        if (targetUid == GameConstants.SERVER_CONSOLE_UID) {
-            if (!isCommand) {
-                this.sendPrivateMessageFromServer(
-                        player.getUid(), "LunaGC received. Use /help for commands.");
-            }
-            return;
-        }
 
         if (target != null && !isCommand) {
             target.sendPacket(packet);

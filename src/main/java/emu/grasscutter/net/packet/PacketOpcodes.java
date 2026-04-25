@@ -257,16 +257,13 @@ public final class PacketOpcodes {
     public static final int GetPlayerAskFriendListRsp = 9181;
     public static final int PlayerChatNotify = 25104;
     public static final int PlayerChatReq = 25131;
-    public static final int PlayerChatRsp = 7739;
+    public static final int PlayerChatRsp = 1;
     public static final int PrivateChatNotify = 460;
     public static final int PrivateChatReq = 4377;
-    public static final int PrivateChatRsp = 27624;
     public static final int PullPrivateChatReq = 2067;
     public static final int PullRecentChatReq = 1991;
     public static final int PullPrivateChatRsp = 922;
     public static final int PullRecentChatRsp = 5700;
-    public static final int ReadPrivateChatReq = 23917;
-    public static final int ReadPrivateChatRsp = 2079;
     public static final int SetOpenStateReq = 20934;
     public static final int SetOpenStateRsp = 2486;
     public static final int SetChatEmojiCollectionReq = 6465;
