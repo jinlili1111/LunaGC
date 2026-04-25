@@ -1,5 +1,6 @@
 package emu.grasscutter.game.friends;
 
+import emu.grasscutter.GameConstants;
 import emu.grasscutter.database.DatabaseHelper;
 import emu.grasscutter.game.player.*;
 import emu.grasscutter.net.proto.DealAddFriendResultTypeOuterClass.DealAddFriendResultType;
@@ -32,6 +33,10 @@ public class FriendsList extends BasePlayerManager {
     }
 
     public synchronized boolean isFriendsWith(int uid) {
+        if (uid == GameConstants.SERVER_CONSOLE_UID) {
+            return true;
+        }
+
         return this.getFriends().containsKey(uid);
     }
 

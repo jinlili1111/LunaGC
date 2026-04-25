@@ -1517,6 +1517,8 @@ public class Player implements PlayerHook, FieldFetch {
 
         // register
         getServer().registerPlayer(this);
+        session.send(new PacketGetPlayerFriendListRsp(this));
+        this.getServer().getChatSystem().ensureServerConversation(this);
     }
 
     public void onLogout() {

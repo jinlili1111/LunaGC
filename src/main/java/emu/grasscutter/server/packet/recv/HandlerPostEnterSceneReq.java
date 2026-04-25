@@ -1,9 +1,13 @@
 package emu.grasscutter.server.packet.recv;
 
+import emu.grasscutter.game.player.PlayerProgressManager;
 import emu.grasscutter.game.quest.enums.QuestContent;
 import emu.grasscutter.net.packet.*;
 import emu.grasscutter.net.proto.PostEnterSceneReqOuterClass.PostEnterSceneReq;
 import emu.grasscutter.server.game.GameSession;
+import emu.grasscutter.server.packet.send.PacketGetPlayerFriendListRsp;
+import emu.grasscutter.server.packet.send.PacketOpenStateChangeNotify;
+import emu.grasscutter.server.packet.send.PacketOpenStateUpdateNotify;
 import emu.grasscutter.server.packet.send.PacketPostEnterSceneRsp;
 
 @Opcodes(PacketOpcodes.PostEnterSceneReq)
@@ -32,5 +36,10 @@ public class HandlerPostEnterSceneReq extends PacketHandler {
         questManager.queueEvent(QuestContent.QUEST_CONTENT_LEAVE_SCENE, scene.getPrevScene());
 
         session.send(new PacketPostEnterSceneRsp(session.getPlayer()));
+        player.getProgressManager().ensurePaimonOpenState();
+        session.send(new PacketOpenStateUpdateNotify(player));
+        session.send(new PacketOpenStateChangeNotify(PlayerProgressManager.OPEN_STATE_PAIMON, 1));
+        session.send(new PacketGetPlayerFriendListRsp(player));
+        session.getServer().getChatSystem().ensureServerConversation(player);
     }
 }

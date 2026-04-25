@@ -15,6 +15,7 @@ import emu.grasscutter.game.drop.DropSystem;
 import emu.grasscutter.game.drop.DropSystemLegacy;
 import emu.grasscutter.game.dungeons.DungeonSystem;
 import emu.grasscutter.game.expedition.ExpeditionSystem;
+import emu.grasscutter.game.friends.ServerFriend;
 import emu.grasscutter.game.gacha.GachaSystem;
 import emu.grasscutter.game.home.HomeWorld;
 import emu.grasscutter.game.home.HomeWorldMPSystem;
@@ -264,6 +265,10 @@ public final class GameServer extends KcpServer implements Iterable<Player> {
     }
 
     public SocialDetail.Builder getSocialDetailByUid(int id) {
+        if (id == GameConstants.SERVER_CONSOLE_UID) {
+            return ServerFriend.toSocialDetail();
+        }
+
         // Get from online players
         Player player = this.getPlayerByUid(id, true);
 

@@ -1,8 +1,7 @@
 package emu.grasscutter.server.packet.recv;
 
+import emu.grasscutter.game.chat.ChatProto;
 import emu.grasscutter.net.packet.*;
-import emu.grasscutter.net.proto.ChatInfoOuterClass.ChatInfo;
-import emu.grasscutter.net.proto.PlayerChatReqOuterClass.PlayerChatReq;
 import emu.grasscutter.server.game.GameSession;
 import emu.grasscutter.server.packet.send.PacketPlayerChatRsp;
 
@@ -11,19 +10,18 @@ public class HandlerPlayerChatReq extends PacketHandler {
 
     @Override
     public void handle(GameSession session, byte[] header, byte[] payload) throws Exception {
-        PlayerChatReq req = PlayerChatReq.parseFrom(payload);
-        ChatInfo.ContentCase content = req.getChatInfo().getContentCase();
+        var req = ChatProto.parsePlayerChatReq(payload);
 
-        if (content == ChatInfo.ContentCase.TEXT) {
+        if (req.hasText()) {
             session
                     .getServer()
                     .getChatSystem()
-                    .sendTeamMessage(session.getPlayer(), req.getChannelId(), req.getChatInfo().getText());
-        } else if (content == ChatInfo.ContentCase.ICON) {
+                    .sendTeamMessage(session.getPlayer(), req.channelId(), req.text());
+        } else if (req.hasIcon()) {
             session
                     .getServer()
                     .getChatSystem()
-                    .sendTeamMessage(session.getPlayer(), req.getChannelId(), req.getChatInfo().getIcon());
+                    .sendTeamMessage(session.getPlayer(), req.channelId(), req.icon());
         }
 
         session.send(new PacketPlayerChatRsp());

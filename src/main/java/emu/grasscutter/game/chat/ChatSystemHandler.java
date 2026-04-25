@@ -18,6 +18,8 @@ public interface ChatSystemHandler {
 
     void sendPrivateMessageFromServer(int targetUid, int emote);
 
+    void ensureServerConversation(Player player);
+
     void handlePullPrivateChatReq(Player player, int targetUid);
 
     void clearHistoryOnLogout(Player player);

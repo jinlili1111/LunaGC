@@ -18,6 +18,8 @@ import java.util.stream.Collectors;
 
 // @Entity
 public final class PlayerProgressManager extends BasePlayerDataManager {
+    public static final int OPEN_STATE_PAIMON = 1;
+
     /******************************************************************************************************************
      ******************************************************************************************************************
      * OPEN STATES
@@ -73,6 +75,8 @@ public final class PlayerProgressManager extends BasePlayerDataManager {
      * Handler for player login.
      **********/
     public void onPlayerLogin() {
+        this.ensurePaimonOpenState();
+
         // Try unlocking open states on player login. This handles accounts where unlock conditions were
         // already met before certain open state unlocks were implemented.
         this.tryUnlockOpenStates(false);
@@ -97,6 +101,10 @@ public final class PlayerProgressManager extends BasePlayerDataManager {
      **********/
     public int getOpenState(int openState) {
         return this.player.getOpenStates().getOrDefault(openState, 0);
+    }
+
+    public void ensurePaimonOpenState() {
+        this.player.getOpenStates().put(OPEN_STATE_PAIMON, 1);
     }
 
     private void setOpenState(int openState, int value, boolean sendNotify) {
