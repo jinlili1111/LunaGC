@@ -225,7 +225,7 @@ public final class TeamManager extends BasePlayerDataManager {
         try {
             currentCharacter = this.getActiveTeam().get(this.currentCharacterIndex);
         } catch (Exception e) {
-            currentCharacter = this.getActiveTeam().getFirst();
+            currentCharacter = this.getActiveTeam().get(0);
         }
 
         return currentCharacter;

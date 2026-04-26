@@ -260,6 +260,7 @@ public final class PacketOpcodes {
     public static final int PlayerChatRsp = 1;
     public static final int PrivateChatNotify = 460;
     public static final int PrivateChatReq = 4377;
+    public static final int PrivateChatRsp = 27624;
     public static final int PullPrivateChatReq = 2067;
     public static final int PullRecentChatReq = 1991;
     public static final int PullPrivateChatRsp = 922;

@@ -2,12 +2,16 @@ package emu.grasscutter.server.packet.send;
 
 import emu.grasscutter.net.packet.*;
 import emu.grasscutter.net.proto.ChatInfoOuterClass.ChatInfo;
-import emu.grasscutter.net.proto.PrivateChatNotifyOuterClass.PrivateChatNotify;
+import emu.grasscutter.server.packet.util.ChatProtoCodec;
 
 public class PacketPrivateChatNotify extends BasePacket {
     private final ChatInfo info;
 
     public PacketPrivateChatNotify(int senderId, int recvId, String message) {
+        this(senderId, recvId, message, 0);
+    }
+
+    public PacketPrivateChatNotify(int senderId, int recvId, String message, int sequence) {
         super(PacketOpcodes.PrivateChatNotify);
 
         ChatInfo info =
@@ -15,16 +19,19 @@ public class PacketPrivateChatNotify extends BasePacket {
                         .setTime((int) (System.currentTimeMillis() / 1000))
                         .setUid(senderId)
                         .setToUid(recvId)
+                        .setSequence(sequence)
                         .setText(message)
                         .build();
         this.info = info;
 
-        PrivateChatNotify proto = PrivateChatNotify.newBuilder().setChatInfo(info).build();
-
-        this.setData(proto);
+        this.setData(ChatProtoCodec.encodePrivateChatNotify(info));
     }
 
     public PacketPrivateChatNotify(int senderId, int recvId, int emote) {
+        this(senderId, recvId, emote, 0);
+    }
+
+    public PacketPrivateChatNotify(int senderId, int recvId, int emote, int sequence) {
         super(PacketOpcodes.PrivateChatNotify);
 
         ChatInfo info =
@@ -32,13 +39,12 @@ public class PacketPrivateChatNotify extends BasePacket {
                         .setTime((int) (System.currentTimeMillis() / 1000))
                         .setUid(senderId)
                         .setToUid(recvId)
+                        .setSequence(sequence)
                         .setIcon(emote)
                         .build();
         this.info = info;
 
-        PrivateChatNotify proto = PrivateChatNotify.newBuilder().setChatInfo(info).build();
-
-        this.setData(proto);
+        this.setData(ChatProtoCodec.encodePrivateChatNotify(info));
     }
 
     public ChatInfo getChatInfo() {

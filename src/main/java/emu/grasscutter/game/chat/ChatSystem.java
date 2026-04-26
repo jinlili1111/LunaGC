@@ -6,6 +6,7 @@ import emu.grasscutter.GameConstants;
 import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.game.player.Player;
 import emu.grasscutter.net.proto.ChatInfoOuterClass.ChatInfo;
+import emu.grasscutter.net.proto.RetcodeOuterClass.Retcode;
 import emu.grasscutter.server.event.player.PlayerChatEvent;
 import emu.grasscutter.server.game.GameServer;
 import emu.grasscutter.server.packet.send.*;
@@ -33,9 +34,17 @@ public class ChatSystem implements ChatSystemHandler {
     }
 
     private boolean tryInvokeCommand(Player sender, Player target, String rawMessage) {
+        if (rawMessage == null || rawMessage.isBlank()) return false;
+
         if (!RE_PREFIXES.matcher(rawMessage.substring(0, 1)).matches()) return false;
-        for (String line : rawMessage.substring(1).split("\n[/!]"))
-            CommandMap.getInstance().invoke(sender, target, line);
+        String commandText = rawMessage.substring(1);
+
+        for (String line : RE_COMMANDS.split(commandText)) {
+            line = line.trim();
+            if (!line.isEmpty()) {
+                CommandMap.getInstance().invoke(sender, target, line);
+            }
+        }
         return true;
     }
 
@@ -47,6 +56,14 @@ public class ChatSystem implements ChatSystemHandler {
                 .computeIfAbsent(uid, x -> new HashMap<>())
                 .computeIfAbsent(partnerId, x -> new ArrayList<>())
                 .add(info);
+    }
+
+    private int nextSequence(int uid, int partnerId) {
+        return this.history
+                        .computeIfAbsent(uid, x -> new HashMap<>())
+                        .computeIfAbsent(partnerId, x -> new ArrayList<>())
+                        .size()
+                + 101;
     }
 
     public void clearHistoryOnLogout(Player player) {
@@ -117,7 +134,10 @@ public class ChatSystem implements ChatSystemHandler {
         }
 
         // Create chat packet and put in history.
-        var packet = new PacketPrivateChatNotify(GameConstants.SERVER_CONSOLE_UID, targetUid, message);
+        int sequence = nextSequence(targetUid, GameConstants.SERVER_CONSOLE_UID);
+        var packet =
+                new PacketPrivateChatNotify(
+                        GameConstants.SERVER_CONSOLE_UID, targetUid, message, sequence);
         putInHistory(targetUid, GameConstants.SERVER_CONSOLE_UID, packet.getChatInfo());
 
         // Send.
@@ -132,42 +152,45 @@ public class ChatSystem implements ChatSystemHandler {
         }
 
         // Create chat packet and put in history.
-        var packet = new PacketPrivateChatNotify(GameConstants.SERVER_CONSOLE_UID, targetUid, emote);
+        int sequence = nextSequence(targetUid, GameConstants.SERVER_CONSOLE_UID);
+        var packet =
+                new PacketPrivateChatNotify(
+                        GameConstants.SERVER_CONSOLE_UID, targetUid, emote, sequence);
         putInHistory(targetUid, GameConstants.SERVER_CONSOLE_UID, packet.getChatInfo());
 
         // Send.
         target.sendPacket(packet);
     }
 
-    public void sendPrivateMessage(Player player, int targetUid, String message) {
+    public int sendPrivateMessage(Player player, int targetUid, String message) {
         // Sanity checks.
-        if (message == null || message.length() == 0) {
-            return;
+        if (message == null || message.length() == 0 || message.length() > 80) {
+            return Retcode.RET_PRIVATE_CHAT_CONTENT_TOO_LONG_VALUE;
         }
 
         // Get target.
         var target = getServer().getPlayerByUid(targetUid);
-        if (target == null && targetUid != GameConstants.SERVER_CONSOLE_UID) {
-            return;
-        }
 
         // Invoke the chat event.
         var event = new PlayerChatEvent(player, message, target);
         event.call();
-        if (event.isCanceled()) return;
+        if (event.isCanceled()) return Retcode.RET_FAIL_VALUE;
 
-        // Fetch the new target.
-        if (targetUid != GameConstants.SERVER_CONSOLE_UID) {
+        // Fetch the new target when the target is online. Offline messages still need local echo.
+        if (targetUid != GameConstants.SERVER_CONSOLE_UID && target != null) {
             targetUid = event.getTargetUid();
-            if (targetUid == -1) return;
+            if (targetUid == -1) return Retcode.RET_PRIVATE_CHAT_TARGET_IS_NOT_FRIEND_VALUE;
         }
 
         // Fetch the new message.
         message = event.getMessage();
-        if (message == null || message.length() == 0) return;
+        if (message == null || message.length() == 0 || message.length() > 80) {
+            return Retcode.RET_PRIVATE_CHAT_CONTENT_TOO_LONG_VALUE;
+        }
 
         // Create chat packet.
-        var packet = new PacketPrivateChatNotify(player.getUid(), targetUid, message);
+        int sequence = nextSequence(player.getUid(), targetUid);
+        var packet = new PacketPrivateChatNotify(player.getUid(), targetUid, message, sequence);
 
         // Send and put in history.
         player.sendPacket(packet);
@@ -180,31 +203,31 @@ public class ChatSystem implements ChatSystemHandler {
             target.sendPacket(packet);
             this.putInHistory(targetUid, player.getUid(), packet.getChatInfo());
         }
+
+        return Retcode.RET_SUCC_VALUE;
     }
 
-    public void sendPrivateMessage(Player player, int targetUid, int emote) {
+    public int sendPrivateMessage(Player player, int targetUid, int emote) {
         // Get target.
         var target = getServer().getPlayerByUid(targetUid);
-        if (target == null && targetUid != GameConstants.SERVER_CONSOLE_UID) {
-            return;
-        }
 
         // Invoke the chat event.
         var event = new PlayerChatEvent(player, emote, target);
         event.call();
-        if (event.isCanceled()) return;
+        if (event.isCanceled()) return Retcode.RET_FAIL_VALUE;
 
-        // Fetch the new target.
-        if (targetUid != GameConstants.SERVER_CONSOLE_UID) {
+        // Fetch the new target when the target is online. Offline messages still need local echo.
+        if (targetUid != GameConstants.SERVER_CONSOLE_UID && target != null) {
             targetUid = event.getTargetUid();
-            if (targetUid == -1) return;
+            if (targetUid == -1) return Retcode.RET_PRIVATE_CHAT_TARGET_IS_NOT_FRIEND_VALUE;
         }
         // Fetch the new emote.
         emote = event.getMessageAsInt();
-        if (emote == -1) return;
+        if (emote == -1) return Retcode.RET_RPIVATE_CHAT_INVALID_CONTENT_TYPE_VALUE;
 
         // Create chat packet.
-        var packet = new PacketPrivateChatNotify(player.getUid(), targetUid, emote);
+        int sequence = nextSequence(player.getUid(), targetUid);
+        var packet = new PacketPrivateChatNotify(player.getUid(), targetUid, emote, sequence);
 
         // Send and put is history.
         player.sendPacket(packet);
@@ -214,6 +237,8 @@ public class ChatSystem implements ChatSystemHandler {
             target.sendPacket(packet);
             this.putInHistory(targetUid, player.getUid(), packet.getChatInfo());
         }
+
+        return Retcode.RET_SUCC_VALUE;
     }
 
     public void sendTeamMessage(Player player, int channel, String message) {
