@@ -1,0 +1,43 @@
+{
+  "RegionInfo": {
+    "UserCenterUrl": "",
+    "ClientDataMd5": "{\"remoteName\": \"data_versions\", \"md5\": \"66ae157e2c08c44e0a0f0bc277ae5643\", \"hash\": \"10c54e44504d12fa\", \"fileSize\": 70806}\r\n{\"remoteName\": \"data_versions_medium\", \"md5\": \"5cecde32f7425b12d2edb644751974f5\", \"hash\": \"e3b8b0830e072436\", \"fileSize\": 7005}",
+    "ResourceUrl": "https://autopatchhk.yuanshen.com/client_game_res/6.5_live",
+    "HandbookUrl": "https://act.hoyoverse.com/ys/event/e20210601blue_post/vert.html?gamewebview=1&page_sn=a8dca8609c7346de&mode=fullscreen&game_biz=hk4e_global&sign_type=2&auth_appid=bluepost&authkey_ver=1",
+    "ClientSilenceDataMd5": "{\"remoteName\": \"data_versions\", \"md5\": \"f1bd263d2ab6fb20dc18f122a425b636\", \"hash\": \"f46183209ed0e648\", \"fileSize\": 523}",
+    "AreaType": "USA",
+    "GateserverIp": "47.253.65.134",
+    "NextResourceUrl": "",
+    "NextResVersionConfig": {},
+    "OfficialCommunityUrl": "https://act.hoyoverse.com/ys/event/e20221107-community/index.html?game_biz=hk4e_global&sign_type=2&auth_appid=redpoint&authkey_ver=1&red_point=2214,2215",
+    "AccountBindUrl": "https://account.hoyoverse.com",
+    "PayCallbackUrl": "https://osusaoaserver.yuanshen.com/recharge",
+    "ResourceUrlBak": "6.5_live",
+    "ResVersionConfig": {
+      "NextScriptVersion": "",
+      "Branch": "6.5_live",
+      "VersionSuffix": "d5f210655f",
+      "Md5": "{\"remoteName\": \"res_versions_external\", \"md5\": \"43380e7acc991913b7ad2b64b58fb78f\", \"hash\": \"3891cc99aa87a6f8\", \"fileSize\": 321280}\r\n{\"remoteName\": \"res_versions_medium\", \"md5\": \"1f6e58114f11dae058146b2f3f69785e\", \"hash\": \"c8116ea4f1325d04\", \"fileSize\": 191209}\r\n{\"remoteName\": \"res_versions_streaming\", \"md5\": \"4e7e0f3345f79598090c4dde764082e6\", \"hash\": \"fea7207959dc7c47\", \"fileSize\": 170835}\r\n{\"remoteName\": \"base_revision\", \"md5\": \"0dfa01747fe5f0c3f65735ce411cc0b4\", \"hash\": \"ea683e748c540505\", \"fileSize\": 19}\r\n{\"remoteName\": \"patch_node_versions\", \"md5\": \"9ccb3cbea31d0adb8c7828278e1b2e98\", \"hash\": \"b106ed1a26c44161\", \"fileSize\": 5855}",
+      "ReleaseTotalSize": "0",
+      "Relogin": false,
+      "Version": 44143143
+    },
+    "GameBiz": "hk4e_global",
+    "FeedbackUrl": "https://cs.hoyoverse.com/csc-service-center-fe/index.html?goToHall=true&sign_type=2&auth_appid=csc&authkey_ver=1&win_direction=portrait&login_type=account&page_id=1",
+    "ClientSilenceVersionSuffix": "957cdb21f1",
+    "DataUrl": "https://autopatchhk.yuanshen.com/client_design_data/6.5_live",
+    "ClientVersionSuffix": "6794f685f4",
+    "PrivacyPolicyUrl": "https://account.hoyoverse.com/#/about/privacyInGame?app_id=4&biz=hk4e_global",
+    "DataUrlBak": "",
+    "GateserverDomainName": "",
+    "BulletinUrl": "",
+    "CdkeyUrl": "https://public-operation-hk4e.hoyoverse.com/common/apicdkey/api/exchangeCdkey?sign_type=2&auth_appid=apicdkey&authkey_ver=1",
+    "UseGateserverDomainName": false,
+    "GateserverPort": 22101,
+    "ClientDataVersion": 43994318,
+    "ClientSilenceDataVersion": 44270935
+  },
+  "ClientSecretKey": "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",
+  "Msg": "",
+  "Retcode": 0
+}
