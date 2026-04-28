@@ -282,7 +282,7 @@ public abstract class GameEntity {
     }
 
     public void damage(float amount, int killerId, ElementType attackType) {
-        this.damage(amount, 0, attackType, PropChangeReason.PropChangeReason_PROP_CHANGE_NONE, ChangeHpReason.ChangeHpReason_CHANGE_HP_NONE);
+        this.damage(amount, killerId, attackType, PropChangeReason.PropChangeReason_PROP_CHANGE_NONE, ChangeHpReason.ChangeHpReason_CHANGE_HP_NONE);
     }
 
     public void damage(float amount, PropChangeReason propChangeReason, ChangeHpReason changeHpReason) {
@@ -323,6 +323,17 @@ public abstract class GameEntity {
 
         // Add negative HP to the current HP property.
         this.addFightProperty(FightProperty.FIGHT_PROP_CUR_HP, -effectiveDamage);
+        Grasscutter.getLogger()
+                .info(
+                        "[CombatHP] damage entity={} class={} requested={} effective={} hpBefore={} hpAfter={} lockHp={} limbo={}",
+                        this.getId(),
+                        this.getClass().getSimpleName(),
+                        event.getDamage(),
+                        effectiveDamage,
+                        curHp,
+                        this.getFightProperty(FightProperty.FIGHT_PROP_CUR_HP),
+                        lockHP,
+                        limbo);
 
         this.lastAttackType = attackType;
         this.checkIfDead();
@@ -332,6 +343,18 @@ public abstract class GameEntity {
         this.getScene()
                 .broadcastPacket(
                         new PacketEntityFightPropUpdateNotify(this, FightProperty.FIGHT_PROP_CUR_HP));
+        if (effectiveDamage > 0
+                && (propChangeReason != PropChangeReason.PropChangeReason_PROP_CHANGE_NONE
+                        || changeHpReason != ChangeHpReason.ChangeHpReason_CHANGE_HP_NONE)) {
+            this.getScene()
+                    .broadcastPacket(
+                            new PacketEntityFightPropChangeReasonNotify(
+                                    this,
+                                    FightProperty.FIGHT_PROP_CUR_HP,
+                                    -effectiveDamage,
+                                    propChangeReason,
+                                    changeHpReason));
+        }
 
         // Check if dead.
         if (this.isDead) {

@@ -35,8 +35,6 @@ public class HandlerUnionCmdNotify extends PacketHandler {
         session.getPlayer().getAbilityInvokeHandler().update(session.getPlayer());
 
         // Handle attack results last
-        while (!session.getPlayer().getAttackResults().isEmpty()) {
-            session.getPlayer().getScene().handleAttack(session.getPlayer().getAttackResults().poll());
-        }
+        AttackResultProcessor.flush(session.getPlayer());
     }
 }

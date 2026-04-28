@@ -477,12 +477,27 @@ public class Scene {
 
     public void handleAttack(AttackResult result) {
         // GameEntity attacker = getEntityById(result.getAttackerId());
-        GameEntity target = getEntityById(result.getDefenseId());
+        int defenseId = getAttackResultDefenseId(result);
+        GameEntity target = getEntityById(defenseId);
         ElementType attackType = ElementType.getTypeByValue(result.getElementType());
 
         if (target == null) {
+            Grasscutter.getLogger()
+                    .info(
+                            "[CombatHP] target not found attacker={} target={} damage={}",
+                            result.getAttackerId(),
+                            defenseId,
+                            result.getDamage());
             return;
         }
+
+        Grasscutter.getLogger()
+                .info(
+                        "[CombatHP] handleAttack targetClass={} target={} curHp={} damage={}",
+                        target.getClass().getSimpleName(),
+                        target.getId(),
+                        target.getFightProperty(FightProperty.FIGHT_PROP_CUR_HP),
+                        result.getDamage());
 
         // Godmode check
         if (target instanceof EntityAvatar) {
@@ -492,7 +507,32 @@ public class Scene {
         }
 
         // Sanity check
-        target.damage(result.getDamage(), result.getAttackerId(), attackType);
+        var changeHpReason =
+                target instanceof EntityMonster
+                        ? ChangeHpReasonOuterClass.ChangeHpReason.ChangeHpReason_CHANGE_HP_SUB_MONSTER
+                        : target instanceof EntityAvatar
+                                ? ChangeHpReasonOuterClass.ChangeHpReason.ChangeHpReason_CHANGE_HP_SUB_AVATAR
+                                : ChangeHpReasonOuterClass.ChangeHpReason.ChangeHpReason_CHANGE_HP_SUB_ABILITY;
+        target.damage(
+                result.getDamage(),
+                result.getAttackerId(),
+                attackType,
+                PropChangeReasonOuterClass.PropChangeReason.PropChangeReason_PROP_CHANGE_ABILITY,
+                changeHpReason);
+    }
+
+    private int getAttackResultDefenseId(AttackResult result) {
+        int defenseId = result.getDefenseId();
+        if (defenseId != 0) {
+            return defenseId;
+        }
+
+        var field = result.getUnknownFields().getField(5);
+        if (field != null && !field.getVarintList().isEmpty()) {
+            return field.getVarintList().get(0).intValue();
+        }
+
+        return 0;
     }
 
     public void killEntity(GameEntity target) {

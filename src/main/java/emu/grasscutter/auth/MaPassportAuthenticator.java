@@ -1,5 +1,7 @@
 package emu.grasscutter.auth;
 
+import static emu.grasscutter.config.Configuration.ACCOUNT;
+
 import emu.grasscutter.Grasscutter;
 import emu.grasscutter.database.DatabaseHelper;
 import emu.grasscutter.game.Account;
@@ -43,6 +45,13 @@ public class MaPassportAuthenticator {
             
             Account account = DatabaseHelper.getAccountByName(username);
             
+            if (account == null && ACCOUNT.autoCreate) {
+                account = DatabaseHelper.createAccountWithUid(username, 0);
+                if (account != null) {
+                    Grasscutter.getLogger().info("Account auto-created via Ma-passport login: " + username);
+                }
+            }
+            
             if (account == null) {
                 Grasscutter.getLogger().info("Account not found: " + username);
                 return createLoginErrorResponse(-101, "Account or password error");
@@ -55,12 +64,7 @@ public class MaPassportAuthenticator {
             
             
             Grasscutter.getLogger().debug("Generating session key");
-            String sessionKey = account.getSessionKey();
-            if (sessionKey == null || !sessionKey.startsWith("v2_")) {
-                sessionKey = account.generateV2SessionKey();
-            } else {
-                Grasscutter.getLogger().debug("Using existing key");
-            }
+            account.generateSessionKey();
             
             Grasscutter.getLogger().info("User " + username + " has successfully logged in");
             return createLoginSuccessResponse(account);

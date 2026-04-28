@@ -1,24 +1,35 @@
 package emu.grasscutter.server.packet.send;
 
+import com.google.protobuf.CodedOutputStream;
 import emu.grasscutter.net.packet.*;
-import emu.grasscutter.net.proto.ScenePointUnlockNotifyOuterClass.ScenePointUnlockNotify;
+import java.io.ByteArrayOutputStream;
 
 public class PacketScenePointUnlockNotify extends BasePacket {
     public PacketScenePointUnlockNotify(int sceneId, int pointId) {
         super(PacketOpcodes.ScenePointUnlockNotify);
 
-        ScenePointUnlockNotify.Builder p =
-                ScenePointUnlockNotify.newBuilder().setSceneId(sceneId).addPointList(pointId);
-
-        this.setData(p);
+        this.setData(encode(sceneId, java.util.List.of(pointId)));
     }
 
     public PacketScenePointUnlockNotify(int sceneId, Iterable<Integer> pointIds) {
         super(PacketOpcodes.ScenePointUnlockNotify);
 
-        ScenePointUnlockNotify.Builder p =
-                ScenePointUnlockNotify.newBuilder().setSceneId(sceneId).addAllPointList(pointIds);
+        this.setData(encode(sceneId, pointIds));
+    }
 
-        this.setData(p);
+    private byte[] encode(int sceneId, Iterable<Integer> pointIds) {
+        try {
+            var out = new ByteArrayOutputStream();
+            var coded = CodedOutputStream.newInstance(out);
+            for (int pointId : pointIds) {
+                coded.writeUInt32(10, pointId);
+                coded.writeUInt32(12, pointId);
+            }
+            coded.writeUInt32(11, sceneId);
+            coded.flush();
+            return out.toByteArray();
+        } catch (Exception ignored) {
+            return new byte[0];
+        }
     }
 }

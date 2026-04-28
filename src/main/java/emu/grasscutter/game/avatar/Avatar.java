@@ -151,7 +151,11 @@ public class Avatar {
     }
 
     public static int getMinPromoteLevel(int level) {
-        if (level > 80) {
+        if (level > 95) {
+            return 8;
+        } else if (level > 90) {
+            return 7;
+        } else if (level > 80) {
             return 6;
         } else if (level > 70) {
             return 5;

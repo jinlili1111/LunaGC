@@ -12,6 +12,8 @@ import emu.grasscutter.game.avatar.Avatar;
 import emu.grasscutter.game.inventory.*;
 import emu.grasscutter.game.player.Player;
 import emu.grasscutter.game.props.*;
+import emu.grasscutter.game.props.ItemUseAction.UseItemParams;
+import emu.grasscutter.server.packet.send.PacketAvatarPropNotify;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
@@ -21,7 +23,7 @@ import lombok.Setter;
         label = "give",
         aliases = {"g", "item", "giveitem"},
         usage = {
-            "(<itemId>|<avatarId>|all|weapons|mats|avatars) [lv<level>] [r<refinement>] [x<amount>] [c<constellation>] [sl<skilllevel>]",
+            "(<itemId>|<avatarId>|all|weapons|mats|avatars|const <avatarId>) [lv<level>] [r<refinement>] [x<amount>] [c<constellation>] [sl<skilllevel>]",
             "<artifactId> [lv<level>] [x<amount>] [<mainPropId>] [<appendPropId>[,<times>]]..."
         },
         permission = "player.give",
@@ -60,6 +62,27 @@ public final class GiveCommand implements CommandHandler {
         return avatar;
     }
 
+    private static void updateAvatar(Avatar avatar, GiveItemParameters param) {
+        if (param.levelSpecified) {
+            avatar.setLevel(param.lvl);
+            avatar.setPromoteLevel(Avatar.getMinPromoteLevel(param.lvl));
+        }
+        if (param.skillLevelSpecified) {
+            avatar
+                    .getSkillDepot()
+                    .getSkillsAndEnergySkill()
+                    .forEach(id -> avatar.setSkillLevel(id, param.skillLevel));
+        }
+        if (param.constellationSpecified) {
+            avatar.forceConstellationLevel(param.constellation);
+        }
+        avatar.recalcStats(true);
+        avatar.save();
+        if (avatar.getPlayer() != null) {
+            avatar.getPlayer().sendPacket(new PacketAvatarPropNotify(avatar));
+        }
+    }
+
     private static void giveAllAvatars(Player player, GiveItemParameters param) {
         int promoteLevel = Avatar.getMinPromoteLevel(param.lvl);
         if (param.constellation < 0 || param.constellation > 6)
@@ -69,6 +92,11 @@ public final class GiveCommand implements CommandHandler {
         for (AvatarData avatarData : GameData.getAvatarDataMap().values()) {
             int id = avatarData.getId();
             if (id < 10000002 || id >= 11000000) continue; // Exclude test avatars
+            Avatar existingAvatar = player.getAvatars().getAvatarById(id);
+            if (existingAvatar != null) {
+                updateAvatar(existingAvatar, param);
+                continue;
+            }
             // Don't try to add each avatar to the current team
             player.addAvatar(
                     makeAvatar(avatarData, param.lvl, promoteLevel, param.constellation, param.skillLevel),
@@ -271,6 +299,45 @@ public final class GiveCommand implements CommandHandler {
         giveAllWeapons(player, param);
     }
 
+    private static AvatarData resolveAvatarData(int id) {
+        AvatarData avatarData = GameData.getAvatarDataMap().get(id);
+        if (avatarData != null) return avatarData;
+        if (id > 0 && id < 1000) return GameData.getAvatarDataMap().get(id + 10_000_000);
+        if (id > 1000 && id < 1100) return GameData.getAvatarDataMap().get(id - 1000 + 10_000_000);
+        return null;
+    }
+
+    private static ItemData resolveConstellationItemData(AvatarData avatarData) {
+        if (avatarData == null || avatarData.getSkillDepot() == null) return null;
+        int itemId = avatarData.getSkillDepot().getTalentCostItemId();
+        if (itemId <= 0) return null;
+        return GameData.getItemDataMap().get(itemId);
+    }
+
+    private static boolean shouldUseDirectly(ItemData data) {
+        if (data == null) return false;
+        return data.isUseOnGain()
+                || data.getMaterialType() == MaterialType.MATERIAL_AVATAR
+                || data.getMaterialType() == MaterialType.MATERIAL_FLYCLOAK
+                || data.getMaterialType() == MaterialType.MATERIAL_COSTUME
+                || data.getMaterialType() == MaterialType.MATERIAL_NAMECARD;
+    }
+
+    private static boolean giveStackableOrUseOnGain(Player player, ItemData data, int amount) {
+        if (data == null || amount < 1) return false;
+        if (!shouldUseDirectly(data)) {
+            return player.getInventory().addItem(new GameItem(data, amount), ActionReason.SubfieldDrop);
+        }
+
+        boolean success = false;
+        for (int i = 0; i < amount; i++) {
+            var params = new UseItemParams(player, data.getUseTarget());
+            params.usedItemId = data.getId();
+            success |= player.getServer().getInventorySystem().useItemDirect(data, params);
+        }
+        return success;
+    }
+
     private GiveItemParameters parseArgs(Player sender, List<String> args)
             throws IllegalArgumentException {
         GiveItemParameters param = new GiveItemParameters();
@@ -299,6 +366,32 @@ public final class GiveCommand implements CommandHandler {
             case "avatars":
                 param.giveAllType = GiveAllType.AVATARS;
                 break;
+            case "const":
+            case "constellation":
+            case "talent":
+            case "talentitem":
+                if (args.isEmpty()) {
+                    sendUsageMessage(sender);
+                    throw new IllegalArgumentException();
+                }
+                try {
+                    param.id = Integer.parseInt(args.remove(0));
+                } catch (NumberFormatException e) {
+                    CommandHandler.sendTranslatedMessage(sender, "commands.generic.invalid.itemId");
+                    throw e;
+                }
+                param.avatarData = resolveAvatarData(param.id);
+                param.data = resolveConstellationItemData(param.avatarData);
+                param.giveConstellationItem = true;
+                if (!args.isEmpty() && param.amount == 1) {
+                    try {
+                        param.amount = Integer.parseInt(args.remove(0));
+                    } catch (NumberFormatException e) {
+                        CommandHandler.sendTranslatedMessage(sender, "commands.generic.invalid.amount");
+                        throw e;
+                    }
+                }
+                break;
             default:
                 try {
                     param.id = Integer.parseInt(id);
@@ -308,10 +401,7 @@ public final class GiveCommand implements CommandHandler {
                     throw e;
                 }
                 param.data = GameData.getItemDataMap().get(param.id);
-                if ((param.id > 10_000_000) && (param.id < 12_000_000))
-                    param.avatarData = GameData.getAvatarDataMap().get(param.id);
-                else if ((param.id > 1000) && (param.id < 1100))
-                    param.avatarData = GameData.getAvatarDataMap().get(param.id - 1000 + 10_000_000);
+                param.avatarData = resolveAvatarData(param.id);
                 isRelic = ((param.data != null) && (param.data.getItemType() == ItemType.ITEM_RELIQUARY));
 
                 if (!isRelic
@@ -339,7 +429,7 @@ public final class GiveCommand implements CommandHandler {
         } else {
             // Suitable for Avatars and Weapons
             if (param.lvl < 1) param.lvl = 1;
-            if (param.lvl > 90) param.lvl = 90;
+            if (param.lvl > 100) param.lvl = 100;
         }
 
         if (!args.isEmpty()) {
@@ -390,8 +480,54 @@ public final class GiveCommand implements CommandHandler {
                     break;
             }
 
+            if (param.giveConstellationItem) {
+                if (param.avatarData == null || param.data == null) {
+                    CommandHandler.sendTranslatedMessage(sender, "commands.generic.invalid.itemId");
+                    return;
+                }
+                boolean success = giveStackableOrUseOnGain(targetPlayer, param.data, param.amount);
+                if (!success) {
+                    CommandHandler.sendMessage(
+                            sender,
+                            "Failed to give constellation item "
+                                    + param.data.getId()
+                                    + " for avatar "
+                                    + param.avatarData.getId()
+                                    + " to "
+                                    + targetPlayer.getUid()
+                                    + ".");
+                    return;
+                }
+                CommandHandler.sendMessage(
+                        sender,
+                        "Given "
+                                + param.amount
+                                + " constellation item "
+                                + param.data.getId()
+                                + " for avatar "
+                                + param.avatarData.getId()
+                                + " to "
+                                + targetPlayer.getUid()
+                                + ".");
+                return;
+            }
+
             // Check if this is an avatar
             if (param.avatarData != null) {
+                Avatar existingAvatar = targetPlayer.getAvatars().getAvatarById(param.avatarData.getId());
+                if (existingAvatar != null) {
+                    updateAvatar(existingAvatar, param);
+                    CommandHandler.sendMessage(
+                            sender,
+                            "Updated avatar "
+                                    + param.id
+                                    + " to level "
+                                    + existingAvatar.getLevel()
+                                    + " for "
+                                    + targetPlayer.getUid()
+                                    + ".");
+                    return;
+                }
                 Avatar avatar = makeAvatar(param);
                 targetPlayer.addAvatar(avatar);
                 CommandHandler.sendTranslatedMessage(
@@ -429,9 +565,19 @@ public final class GiveCommand implements CommandHandler {
                             targetPlayer.getUid());
                     return;
                 default:
-                    targetPlayer
-                            .getInventory()
-                            .addItem(new GameItem(param.data, param.amount), ActionReason.SubfieldDrop);
+                    boolean success = giveStackableOrUseOnGain(targetPlayer, param.data, param.amount);
+                    if (!success) {
+                        CommandHandler.sendMessage(
+                                sender,
+                                "Failed to give item "
+                                        + param.id
+                                        + " x"
+                                        + param.amount
+                                        + " to "
+                                        + targetPlayer.getUid()
+                                        + ".");
+                        return;
+                    }
                     CommandHandler.sendTranslatedMessage(
                             sender, "commands.give.given", param.amount, param.id, targetPlayer.getUid());
             }
@@ -449,15 +595,34 @@ public final class GiveCommand implements CommandHandler {
 
     private static class GiveItemParameters {
         public int id;
-        @Setter public int lvl = 0;
+        public int lvl = 0;
         @Setter public int amount = 1;
         @Setter public int refinement = 1;
-        @Setter public int constellation = -1;
-        @Setter public int skillLevel = 1;
+        public int constellation = -1;
+        public int skillLevel = 1;
+        public boolean levelSpecified;
+        public boolean constellationSpecified;
+        public boolean skillLevelSpecified;
         public int mainPropId = -1;
         public List<Integer> appendPropIdList;
         public ItemData data;
         public AvatarData avatarData;
         public GiveAllType giveAllType = GiveAllType.NONE;
+        public boolean giveConstellationItem;
+
+        public void setLvl(int lvl) {
+            this.lvl = lvl;
+            this.levelSpecified = true;
+        }
+
+        public void setConstellation(int constellation) {
+            this.constellation = constellation;
+            this.constellationSpecified = true;
+        }
+
+        public void setSkillLevel(int skillLevel) {
+            this.skillLevel = skillLevel;
+            this.skillLevelSpecified = true;
+        }
     }
 }

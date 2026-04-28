@@ -47,8 +47,8 @@ public final class PacketOpcodes {
     public static final int ClientAbilityChangeNotify = 25821;
     public static final int ClientAbilityInitFinishNotify = 20007;
     public static final int EntityFightPropChangeReasonNotify = 27992;
-    public static final int EntityFightPropNotify = 9676;
-    public static final int EntityFightPropUpdateNotify = 27942;
+    public static final int EntityFightPropNotify = 8781;
+    public static final int EntityFightPropUpdateNotify = 24474;
     public static final int EvtBeingHitNotify = 28734;
     public static final int EvtBeingHealedNotify = 446;
     public static final int GetGameplayRecommendationReq = 5382;
@@ -536,8 +536,8 @@ public final class PacketOpcodes {
     public static final int AvatarUpgradeRsp = 5740;
     public static final int QueryPathReq = 2301;
     public static final int QueryPathRsp = 2334;
-    public static final int UnlockTransPointReq = 1;
-    public static final int UnlockTransPointRsp = 1;
+    public static final int UnlockTransPointReq = 1578;
+    public static final int UnlockTransPointRsp = 7876;
     public static final int PlayerEnterChildMapLayerNotify = 1;
     public static final int PlayerEnterMapLayerNotify = 1;
     public static final int ServerAnnounceRevokeNotify = 1;

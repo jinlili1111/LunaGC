@@ -44,6 +44,14 @@ public class HandlerCombatInvocationsNotify extends PacketHandler {
 
                     // Handle damage
                     player.getAttackResults().add(attackResult);
+                    Grasscutter.getLogger()
+                            .info(
+                                    "[CombatHP] queued attack attacker={} target={} damage={} element={} queueSize={}",
+                                    attackResult.getAttackerId(),
+                                    AttackResultProcessor.getDefenseId(attackResult),
+                                    attackResult.getDamage(),
+                                    attackResult.getElementType(),
+                                    player.getAttackResults().size());
                     player.getEnergyManager().handleAttackHit(hitInfo);
                 }
                 case CombatTypeArgument_ENTITY_MOVE -> {
@@ -114,6 +122,10 @@ public class HandlerCombatInvocationsNotify extends PacketHandler {
 
             session.getPlayer().getCombatInvokeHandler().addEntry(entry.getForwardType(), entry);
         }
+
+        // Some clients/proxy layers send CombatInvocationsNotify directly instead of wrapping it
+        // inside UnionCmdNotify. Damage is queued above, so flush here as well.
+        AttackResultProcessor.flush(session.getPlayer());
     }
 
     private void handleFallOnGround(GameSession session, GameEntity entity, MotionState motionState) {
